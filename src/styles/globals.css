@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 240 17% 99%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 246 100% 66%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 246 100% 66%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 250 86% 18%; /* Updated to match #0f0655 */
+    --foreground: 0 0% 98%;
+    --card: 246 44% 31%; /* Adjusted card background to be slightly darker */
+    --card-foreground: 0 0% 98%;
+    --popover: 250 86% 18%; /* Updated to match background */
+    --popover-foreground: 0 0% 98%;
+    --primary: 246 100% 66%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 242 100% 6%; /* Adjusted to complement the new background */
+    --secondary-foreground: 0 0% 98%;
+    --muted: 250 70% 22%; /* Adjusted to match secondary */
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 250 70% 22%; /* Adjusted to match secondary */
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 250 70% 15%; /* Adjusted border color */
+    --input: 250 70% 22%; /* Adjusted to match secondary */
+    --ring: 246 100% 66%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom styles for tesnim UI */
+.tesnim-gradient {
+  background: linear-gradient(to right, #5356fc, #7879ff);
+}
+
+.dark .tesnim-shadow {
+  box-shadow: 0 4px 20px rgba(83, 86, 252, 0.25);
+}
+
+.tesnim-card {
+  @apply bg-card rounded-lg border border-border dark:border-[#1d1881]; /* Updated border color to complement the new background */
+}
+
+.tesnim-focus-ring {
+  @apply border-2 border-primary transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-opacity-50;
+}
+
+/* Added styles based on the UI */
+.tesnim-focus-circle {
+  stroke: #5356fc;
+  fill: transparent;
+}
+
+.tesnim-focus-circle-bg {
+  stroke: rgba(83, 86, 252, 0.2);
+  fill: transparent;
+}
+
+.tesnim-tag {
+  @apply text-xs font-medium px-2 py-0.5 rounded-full;
+}
+
+.tesnim-tag-purple {
+  @apply bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300;
+}
+
+.tesnim-tag-green {
+  @apply bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300;
+}
+
+.tesnim-tag-blue {
+  @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300;
+}
