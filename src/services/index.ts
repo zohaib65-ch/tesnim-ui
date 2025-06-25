@@ -21,6 +21,16 @@ interface API {
     getTodosByDueDate: (dueDate: string) => Promise<any>;
     getTodosByTag: (tag: string) => Promise<any>;
   };
+
+  auth: {
+    login: (data: any) => Promise<any>;
+    register: (data: any) => Promise<any>;
+    logout: () => Promise<void>;
+    forgotPassword: (data: any) => Promise<void>;
+    resetPassword: (data: any) => Promise<void>;
+    verifyEmail: (data: any) => Promise<void>;
+    refreshToken: (refreshToken: string) => Promise<void>;
+  };
 }
 
 const API: API = {
@@ -34,6 +44,16 @@ const API: API = {
     getTodosByPriority: (priority) => import("./todo.service").then((m) => m.default.getTodosByPriorityAPI(priority)),
     getTodosByDueDate: (dueDate) => import("./todo.service").then((m) => m.default.getTodosByDueDateAPI({ dueDate })),
     getTodosByTag: (tag) => import("./todo.service").then((m) => m.default.getTodosByTagAPI(tag)),
+  },
+
+  auth: {
+    login: (data) => import("../services/auth/auth-service").then((m) => m.default.login(data)),
+    register: (data) => import("../services/auth/auth-service").then((m) => m.default.register(data)),
+    logout: () => import("../services/auth/auth-service").then((m) => m.default.logout()),
+    forgotPassword: (data) => import("../services/auth/auth-service").then((m) => m.default.forgotPassword(data)),
+    resetPassword: (data) => import("../services/auth/auth-service").then((m) => m.default.resetPassword(data)),
+    verifyEmail: (data) => import("../services/auth/auth-service").then((m) => m.default.verifyEmail(data)),
+    refreshToken: (refreshToken) => import("../services/auth/auth-service").then((m) => m.default.refreshToken(refreshToken)),
   },
 };
 

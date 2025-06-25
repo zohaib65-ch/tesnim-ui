@@ -1,176 +1,92 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { EyeIcon, EyeOffIcon, UserPlus, AlertCircle, Mail, User } from "lucide-react";
-import { useAuthStore } from "@/store/auth-store";
+import { useFormik } from "formik";
+import { EyeIcon, EyeOffIcon, UserPlus, Mail, User } from "lucide-react";
 import { CustomButton } from "@/components/shared/button";
 import { CustomInput } from "@/components/shared/InputField";
 import { CustomCard } from "@/components/shared/card";
-import { RegisterFormValues, registerSchema } from "./helper";
 import { PasswordStrengthMeter } from "./auth-helper";
 import { toast } from "sonner";
+import API from "@/services";
 
-declare global {
-  interface Window {
-    grecaptcha: {
-      ready: (cb: () => void) => void;
-      render: (
-        container: string | HTMLElement,
-        parameters: {
-          sitekey: string;
-          callback: (token: string) => void;
-          "expired-callback"?: () => void;
-          "error-callback"?: () => void;
-        }
-      ) => number;
-      reset: (opt_widget_id?: number) => void;
-      execute: (siteKey?: string, options?: any) => Promise<string>;
-    };
+const validate = (values: any) => {
+  const errors: any = {};
+
+  if (!values.firstName) {
+    errors.firstName = "First name is required";
   }
-}
+
+  if (!values.lastName) {
+    errors.lastName = "Last name is required";
+  }
+
+  if (!values.email) {
+    errors.email = "Email is required";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+    errors.email = "Invalid email address";
+  }
+
+  if (!values.password) {
+    errors.password = "Password is required";
+  } else if (values.password.length < 6) {
+    errors.password = "Password must be at least 6 characters";
+  }
+
+  if (!values.confirmPassword) {
+    errors.confirmPassword = "Confirm your password";
+  } else if (values.confirmPassword !== values.password) {
+    errors.confirmPassword = "Passwords do not match";
+  }
+
+  return errors;
+};
 
 export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const recaptchaRef = useRef<number | null>(null);
 
-  const { register: registerUser, isLoading } = useAuthStore();
-
-  // Setup React Hook Form with zod validation
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    setError,
-    formState: { errors },
-    watch,
-  } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
-    defaultValues: {
+  const formik = useFormik({
+    initialValues: {
       firstName: "",
       lastName: "",
       email: "",
       password: "",
       confirmPassword: "",
-      recaptchaToken: "",
     },
-    mode: "onBlur",
+    validate,
+    validateOnBlur: true,
+    onSubmit: async (values) => {
+      setIsLoading(true);
+      try {
+        // ✅ Call the register API
+        console.time("registerRequest");
+        await API.auth.register({
+          firstName: values.firstName.trim(),
+          lastName: values.lastName,
+          email: values.email,
+          password: values.password,
+        });
+        console.timeEnd("registerRequest");
+
+        toast.success("Registration successful!");
+        navigate("/verify-email");
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.toLowerCase().includes("email")) {
+          formik.setFieldError("email", errorMessage);
+        } else {
+          toast.error(errorMessage);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    },
   });
 
-  // Watch form values for UI updates
-  const password = watch("password");
+  const password = formik.values.password;
 
-  // Load reCAPTCHA script
-  useEffect(() => {
-    // Load the reCAPTCHA script only once
-    const scriptId = "recaptcha-script";
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement("script");
-      script.id = scriptId;
-      script.src = "https://www.google.com/recaptcha/api.js?render=explicit";
-      script.async = true;
-      script.defer = true;
-
-      script.onload = () => {
-        if (window.grecaptcha) {
-          window.grecaptcha.ready(() => {
-            // Make sure the container exists before rendering
-            const container = document.getElementById("recaptcha-container");
-            if (container) {
-              try {
-                // Get the site key from environment variables or use a fallback for development
-                const siteKey = "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"; // Fallback key from your code
-
-                // Render the reCAPTCHA widget
-                recaptchaRef.current = window.grecaptcha.render("recaptcha-container", {
-                  sitekey: siteKey,
-                  callback: (token) => {
-                    setValue("recaptchaToken", token);
-                  },
-                  "expired-callback": () => {
-                    setValue("recaptchaToken", "");
-                  },
-                  "error-callback": () => {
-                    setError("recaptchaToken", {
-                      type: "manual",
-                      message: "reCAPTCHA verification failed. Please try again.",
-                    });
-                  },
-                });
-              } catch (err) {
-                toast.error("Error rendering reCAPTCHA:");
-              }
-            } else {
-              toast.error("recaptcha-container element not found");
-            }
-          });
-        }
-      };
-
-      document.body.appendChild(script);
-    }
-
-    return () => {
-      // Clean up function
-      if (recaptchaRef.current && window.grecaptcha) {
-        try {
-          window.grecaptcha.reset(recaptchaRef.current);
-        } catch (err) {
-          toast.error("Error resetting reCAPTCHA:");
-        }
-      }
-    };
-  }, [setValue, setError]);
-
-  const onSubmit = async (data: RegisterFormValues) => {
-    try {
-      // Verify reCAPTCHA token is present
-      if (!data.recaptchaToken) {
-        setError("recaptchaToken", {
-          type: "manual",
-          message: "Please complete the reCAPTCHA verification.",
-        });
-        return;
-      }
-
-      await registerUser({
-        firstName: data.firstName?.trim(),
-        lastName: data.lastName,
-        email: data.email,
-        password: data.password,
-        recaptchaToken: data?.recaptchaToken,
-      });
-      navigate("/verify-email");
-    } catch (error) {
-      // Handle specific errors
-      const errorMessage = error instanceof Error ? error.message : String(error);
-
-      if (errorMessage.toLowerCase().includes("captcha")) {
-        setError("recaptchaToken", {
-          type: "manual",
-          message: "reCAPTCHA verification failed. Please try again.",
-        });
-
-        // Reset reCAPTCHA on failure
-        if (recaptchaRef.current && window.grecaptcha) {
-          try {
-            window.grecaptcha.reset(recaptchaRef.current);
-          } catch (err) {
-            toast.error("Error resetting reCAPTCHA:");
-          }
-        }
-      } else if (errorMessage.toLowerCase().includes("email")) {
-        setError("email", {
-          type: "manual",
-          message: errorMessage,
-        });
-      }
-    }
-  };
-
-  // Footer for the card
   const cardFooter = (
     <p className="text-center text-sm text-muted-foreground">
       Already have an account?{" "}
@@ -192,119 +108,69 @@ export function RegisterForm() {
         withGradient={true}
         footer={cardFooter}
       >
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6" autoComplete="off">
+        <form onSubmit={formik.handleSubmit} className="flex flex-col gap-6" autoComplete="off">
           <div className="grid grid-cols-2 gap-4">
-            <Controller
-              name="firstName"
-              control={control}
-              render={({ field }) => (
-                <CustomInput
-                  id="firstName"
-                  label="First Name"
-                  placeholder="John"
-                  error={errors.firstName?.message}
-                  leftIcon={<User className="h-4 w-4" />}
-                  className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
-                  required
-                  autoComplete="off"
-                  {...field}
-                />
-              )}
+            <CustomInput
+              id="firstName"
+              label="First Name"
+              placeholder="John"
+              error={formik.touched.firstName || formik.submitCount > 0 ? formik.errors.firstName : undefined}
+              leftIcon={<User className="h-4 w-4" />}
+              className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
+              autoComplete="off"
+              {...formik.getFieldProps("firstName")}
             />
 
-            <Controller
-              name="lastName"
-              control={control}
-              render={({ field }) => (
-                <CustomInput
-                  id="lastName"
-                  label="Last Name"
-                  placeholder="Doe"
-                  error={errors.lastName?.message}
-                  className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
-                  required
-                  autoComplete="off"
-                  {...field}
-                />
-              )}
+            <CustomInput
+              id="lastName"
+              label="Last Name"
+              placeholder="Doe"
+              error={formik.touched.lastName || formik.submitCount > 0 ? formik.errors.lastName : undefined}
+              className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
+              autoComplete="off"
+              {...formik.getFieldProps("lastName")}
             />
           </div>
 
-          <Controller
-            name="email"
-            control={control}
-            render={({ field }) => (
-              <CustomInput
-                id="email"
-                label="Email"
-                type="email"
-                placeholder="student@example.com"
-                error={errors.email?.message}
-                leftIcon={<Mail className="h-4 w-4" />}
-                className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
-                required
-                autoComplete="off"
-                {...field}
-              />
-            )}
+          <CustomInput
+            id="email"
+            label="Email"
+            type="email"
+            placeholder="student@example.com"
+            error={formik.touched.email || formik.submitCount > 0 ? formik.errors.email : undefined}
+            leftIcon={<Mail className="h-4 w-4" />}
+            className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
+            autoComplete="off"
+            {...formik.getFieldProps("email")}
           />
 
-          <Controller
-            name="password"
-            control={control}
-            render={({ field }) => (
-              <CustomInput
-                id="password"
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                error={errors.password?.message}
-                rightIcon={showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                onRightIconClick={() => setShowPassword(!showPassword)}
-                className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
-                required
-                autoComplete="new-password"
-                {...field}
-              />
-            )}
+          <CustomInput
+            id="password"
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            placeholder="••••••••"
+            error={formik.touched.password || formik.submitCount > 0 ? formik.errors.password : undefined}
+            rightIcon={showPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+            onRightIconClick={() => setShowPassword(!showPassword)}
+            className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
+            autoComplete="new-password"
+            {...formik.getFieldProps("password")}
           />
 
-          <Controller
-            name="confirmPassword"
-            control={control}
-            render={({ field }) => (
-              <CustomInput
-                id="confirmPassword"
-                label="Confirm Password"
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="••••••••"
-                error={errors.confirmPassword?.message}
-                rightIcon={showConfirmPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                onRightIconClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
-                required
-                autoComplete="new-password"
-                {...field}
-              />
-            )}
+          <CustomInput
+            id="confirmPassword"
+            label="Confirm Password"
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="••••••••"
+            error={formik.touched.confirmPassword || formik.submitCount > 0 ? formik.errors.confirmPassword : undefined}
+            rightIcon={showConfirmPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+            onRightIconClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
+            autoComplete="new-password"
+            {...formik.getFieldProps("confirmPassword")}
           />
 
-          {/* Password strength indicator */}
           {password && <PasswordStrengthMeter password={password} />}
-
-          {/* reCAPTCHA container - properly defined with an ID */}
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-center">
-              {/* This is the container where reCAPTCHA will be rendered */}
-              <div id="recaptcha-container"></div>
-            </div>
-            {errors.recaptchaToken && (
-              <div className="text-destructive text-sm flex items-center mt-1">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                {errors.recaptchaToken.message}
-              </div>
-            )}
-          </div>
 
           <CustomButton
             type="submit"

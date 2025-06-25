@@ -11,6 +11,16 @@ const API_URLS = {
     BY_DUE_DATE: "/todos/due-date",
     BY_TAG: (tag: string): string => `/todos/tag/${tag}`,
   },
+
+  AUTH: {
+    SIGNUP: "/auth/register",
+    LOGIN: "/auth/login",
+    LOGOUT: "/auth/logout",
+    FORGOT_PASSWORD: "/auth/forgot-password",
+    RESET_PASSWORD: "/auth/reset-password",
+    VERIFY_EMAIL: "/auth/verify-email",
+    REFRESH_TOKEN: "/auth/refresh-token",
+  },
 };
 
 export default API_URLS;
