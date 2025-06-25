@@ -234,7 +234,7 @@ export const useTimerStore = create<TimerState>()(
           set({ timerStats: response.data });
           return response.data;
         } catch (error) {
-          console.error("Failed to fetch timer stats:", error);
+          // console.error("Failed to fetch timer stats:", error);
           return get().timerStats;
         }
       },

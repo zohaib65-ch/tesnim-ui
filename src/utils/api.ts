@@ -9,7 +9,7 @@ const instance = axios.create({
 
 const axiosWrapper = async (method: string, url: string, data: any = null) => {
   try {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("accessToken");
     const headers: Record<string, string> = {};
 
     if (token) {
