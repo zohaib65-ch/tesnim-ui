@@ -5,6 +5,7 @@ import { LoginPage } from "@/pages/login-page";
 import { RegisterPage } from "@/pages/register-page";
 import { ForgotPasswordPage } from "@/pages/forgot-password-page";
 import { DashboardPage } from "@/pages/dashboard-page";
+import { ResetPasswordPPage } from "@/pages/reset-password-page";
 
 // Define route types with literal type for role-based access control
 export type RouteRole = "guest" | "user" | "admin" | "superadmin";
@@ -28,6 +29,11 @@ export const publicRoutes: AppRoute[] = [
   {
     path: "/register",
     element: <RegisterPage />,
+    layout: AuthLayout,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPPage />,
     layout: AuthLayout,
   },
   {

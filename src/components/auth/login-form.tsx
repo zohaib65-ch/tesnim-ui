@@ -7,7 +7,7 @@ import { CustomButton } from "@/components/shared/button";
 import { CustomInput } from "@/components/shared/InputField";
 import { CustomCard } from "@/components/shared/card";
 import { loginSchema, LoginFormValues } from "./helper";
-import API from "@/services"; // ✅ Direct API import
+import API from "@/services";
 import { toast } from "sonner";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -38,15 +38,14 @@ export function LoginForm() {
       });
 
       if (response?.token) {
-        const accessToken = response.token;
-        const refreshToken = response.refreshToken;
-        const user = response.user;
+        const { token, refreshToken, user } = response;
 
-        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("accessToken", token);
         localStorage.setItem("refreshToken", refreshToken);
+
         useAuthStore.setState({
           user,
-          token: accessToken,
+          token,
           refreshToken,
           isAuthenticated: true,
           tokenExpiry: Date.now() + 24 * 60 * 60 * 1000,
@@ -55,12 +54,13 @@ export function LoginForm() {
         toast.success("Logged in successfully!");
         navigate("/dashboard");
       } else {
-        throw new Error("Invalid credentials");
+        setFormError("Invalid email or password");
+        toast.error("Invalid email or password");
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.error("Login failed:", msg);
-      setFormError(msg.includes("credentials") ? "Invalid email or password" : msg);
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.error || "Login failed";
+      setFormError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

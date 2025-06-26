@@ -1,12 +1,12 @@
 interface API {
   todos: {
-    createTodo: (data: { text: string; status?: string; priority?: string; dueDate?: string; tags?: string[] }) => Promise<any>;
-    getAllTodos: (filters?: { status?: string; priority?: string; tag?: string; dueDate?: string }) => Promise<any>;
+    createTodo: (data: { title: string; status?: string; priority?: string; dueDate?: string; tags?: string[] }) => Promise<any>;
+    getAllTodos: (filters?: { title: string; status?: string; priority?: string; tag?: string; dueDate?: string }) => Promise<any>;
     getTodoById: (id: string) => Promise<any>;
     updateTodo: (
       id: string,
       data: {
-        text?: string;
+        title?: string;
         completed?: boolean;
         status?: string;
         priority?: string;
@@ -36,6 +36,7 @@ interface API {
 const API: API = {
   todos: {
     createTodo: (data) => import("./todo.service").then((m) => m.default.createTodoAPI(data)),
+
     getAllTodos: (filters) => import("./todo.service").then((m) => m.default.getAllTodosAPI(filters)),
     getTodoById: (id) => import("./todo.service").then((m) => m.default.getTodoByIdAPI(id)),
     updateTodo: (id, data) => import("./todo.service").then((m) => m.default.updateTodoAPI(id, data)),

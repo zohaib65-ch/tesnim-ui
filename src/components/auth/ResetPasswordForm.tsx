@@ -1,48 +1,76 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail } from "lucide-react";
+import { Lock } from "lucide-react";
 import { CustomButton } from "@/components/shared/button";
 import { CustomInput } from "@/components/shared/InputField";
 import { CustomCard } from "@/components/shared/card";
-import { forgotPasswordSchema, ForgotPasswordFormValues } from "./helper";
+import { z } from "zod";
 import API from "@/services";
 import { toast } from "sonner";
 
-export function ForgotPasswordForm() {
+const resetPasswordSchema = z
+  .object({
+    newPassword: z
+      .string()
+      .min(8, "Password must be at least 8 characters long")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
+
+export function ResetPasswordForm() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get("token") || "";
 
   // Setup React Hook Form with zod validation
   const {
     control,
     handleSubmit,
-    getValues,
     formState: { errors },
-  } = useForm<ForgotPasswordFormValues>({
-    resolver: zodResolver(forgotPasswordSchema),
+  } = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
-      email: "",
+      newPassword: "",
+      confirmPassword: "",
     },
     mode: "onBlur",
   });
 
-  const onSubmit = async (data: ForgotPasswordFormValues) => {
+  const onSubmit = async (data: ResetPasswordFormValues) => {
     setIsLoading(true);
     setFormError(null);
 
+    if (!token) {
+      setFormError("Invalid or missing reset token");
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await API.auth.forgotPassword({
-        email: data.email,
+      await API.auth.resetPassword({
+        password: data.newPassword,
+        token,
       });
       setIsSubmitted(true);
-      toast.success("Password reset link sent successfully!");
+      toast.success("Password reset successfully!");
+      setTimeout(() => navigate("/login"), 2000); // Redirect after 2 seconds
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      console.error("Forgot password failed:", msg);
-      setFormError(msg.includes("email") ? "Invalid email address" : msg);
+      console.error("Reset password failed:", msg);
+      setFormError(msg.includes("token") ? "Invalid or expired reset token" : msg);
     } finally {
       setIsLoading(false);
     }
@@ -62,14 +90,14 @@ export function ForgotPasswordForm() {
     <div className="w-full max-w-md">
       {isSubmitted ? (
         <CustomCard
-          title="Check your email"
-          description={`We've sent a password reset link to ${getValues("email")}`}
+          title="Password Reset Successful"
+          description="Your password has been updated successfully"
           titleClassName="text-2xl font-bold text-center"
           descriptionClassName="text-center"
           withGradient={true}
         >
           <div className="flex flex-col items-center gap-6">
-            <p className="text-center text-muted-foreground">Please check your inbox and follow the instructions to reset your password.</p>
+            <p className="text-center text-muted-foreground">You can now log in with your new password.</p>
             <Link to="/login">
               <CustomButton
                 variant="outline"
@@ -81,8 +109,8 @@ export function ForgotPasswordForm() {
         </CustomCard>
       ) : (
         <CustomCard
-          title="Forgot password"
-          description="Enter your email and we'll send you a password reset link"
+          title="Reset Password"
+          description="Enter your new password below"
           titleClassName="text-2xl font-bold text-center"
           descriptionClassName="text-center"
           showFooter={true}
@@ -92,16 +120,34 @@ export function ForgotPasswordForm() {
         >
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
             <Controller
-              name="email"
+              name="newPassword"
               control={control}
               render={({ field }) => (
                 <CustomInput
-                  id="email"
-                  label="Email"
-                  type="email"
-                  placeholder="student@example.com"
-                  error={errors.email?.message}
-                  leftIcon={<Mail className="h-4 w-4" />}
+                  id="newPassword"
+                  label="New Password"
+                  type="password"
+                  placeholder="Enter new password"
+                  error={errors.newPassword?.message}
+                  leftIcon={<Lock className="h-4 w-4" />}
+                  className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
+                  required
+                  {...field}
+                />
+              )}
+            />
+
+            <Controller
+              name="confirmPassword"
+              control={control}
+              render={({ field }) => (
+                <CustomInput
+                  id="confirmPassword"
+                  label="Confirm Password"
+                  type="password"
+                  placeholder="Confirm new password"
+                  error={errors.confirmPassword?.message}
+                  leftIcon={<Lock className="h-4 w-4" />}
                   className="dark:border-[#2d2d5b] dark:bg-[#14142b]/50"
                   required
                   {...field}
@@ -118,8 +164,8 @@ export function ForgotPasswordForm() {
             <CustomButton
               type="submit"
               isLoading={isLoading}
-              icon={!isLoading && <Mail size={18} />}
-              label={isLoading ? "Sending link..." : "Send reset link"}
+              icon={!isLoading && <Lock size={18} />}
+              label={isLoading ? "Resetting password..." : "Reset Password"}
               className="tesnim-gradient text-white shadow-md shadow-primary/20 hover:opacity-90 transition-opacity"
               disabled={isLoading}
             />

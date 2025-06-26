@@ -36,7 +36,7 @@ const updateTodoAPI = async (id: string, postData: any) => {
 
 const deleteTodoAPI = async (id: string) => {
   try {
-    return await axiosWrapper("delete", API_URLS.TODOS.DELETE(id));
+    return await axiosWrapper("delete", `${API_URLS.TODOS.DELETE(id)}`, {});
   } catch (error) {
     throw error;
   }
